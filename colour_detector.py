@@ -5,9 +5,12 @@ cap = cv2.VideoCapture(0)
 
 while True:
     _, frame = cap.read()
+    frame =cv2.flip(frame, 1)
+    blurred_frame = cv2.GaussianBlur(frame, (45,45), 0)
+    # frame = cv2.GaussianBlur(frame, (81, 81), 0)
     
-    blurred_frame = cv2.GaussianBlur(frame, (101,101), 0)
-    
+    # blurred_frame = cv2.blur(frame, (31, 31))
+    # frame = cv2.blur(frame, (31, 31))
     
     hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
     
@@ -18,6 +21,7 @@ while True:
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
     for contour in contours:
+        if cv2.contourArea(contour) > 30 :
             cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
             
         

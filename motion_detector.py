@@ -16,10 +16,10 @@ while True:
 	_,thresh = cv2.threshold(diff, 10, 255, cv2.THRESH_BINARY)
 	threh = cv2.dilate(thresh, None, 3)
 	thresh = cv2.erode(thresh, np.ones((4,4)), 1)
-	contor,_ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	cv2.circle(prev, (20,200), 5, (0,0,255), -1)
 	for contors in contor:				
-		if cv2.contourArea(contors) > 3000:
+		if cv2.contourArea(contors) > 300:
 			(x,y,w,h) = cv2.boundingRect(contors)
 			(x1,y1),rad = cv2.minEnclosingCircle(contors)
 			x1 = int(x1)

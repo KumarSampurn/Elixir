@@ -34,17 +34,20 @@ while True:
 	thresh = cv2.erode(thresh, np.ones((4,4)), 1)  # type: ignore
  
 	contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	cv2.circle(prev, (20,200), 5, (0,255,0), -1)
+	height, width = mask.shape[:2]
+	# cv2.circle(prev, (20,200), 5, (0,255,0), -1) 	height, width = img.shape[:2]
+	cv2.circle(prev, (300,200), 5, (0,255,0), -1)
 	for contors in contours:				
 		if cv2.contourArea(contors) > 300:
 			(x,y,w,h) = cv2.boundingRect(contors)
 			(x1,y1),rad = cv2.minEnclosingCircle(contors)
 			x1 = int(x1)
 			y1 = int(y1)
-			cv2.line(prev, (20,200), (x1, y1), (255,0,0), 4)
-			cv2.putText(prev, "{}".format(int(np.sqrt((x1 - 20)**2 + (y1 - 200)**2))), (100,100),cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 3)
-			cv2.rectangle(prev, (x,y), (x+w,y+h), (0,255,0), 2)
-			cv2.circle(prev, (x1,y1), 5, (0,0,255), -1)
+			if (int(np.sqrt((x1 - 300)**2 + (y1 - 200)**2)) > 100):
+				cv2.line(prev, (300,200), (x1, y1), (255,0,0), 4)
+				cv2.putText(prev, "{}".format(int(np.sqrt((x1 - 20)**2 + (y1 - 200)**2))), (100,100),cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 3)
+				cv2.rectangle(prev, (x,y), (x+w,y+h), (0,255,0), 2)
+				cv2.circle(prev, (x1,y1), 5, (0,0,255), -1)
 		
 					
 	

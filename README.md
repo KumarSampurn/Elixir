@@ -9,3 +9,7 @@ Elixer has a camera mounted on it that helps to document the entire scene for fu
 Elixer constantly send video footage to the control room. Elixer has a paintball/ flouroscent paint that it will shoot on the suspect on being triggered by the operator
 in the control room on seen the live footage . Simultaneously , Elixer drops tear bombs to save the life of victima and to drive the suspect away from the crime scene.
 Elixer has a tracking feature which will follow the flouroscent painted suspect meanwhile sending the live location to the police , until the suspect is not caught.
+
+
+### Techincal  Bakchodi 
+Elixer has to hover over the suspect to so make it over the person a added a radius of 150 pixel unit was added

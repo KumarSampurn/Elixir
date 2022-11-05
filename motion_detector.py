@@ -41,14 +41,24 @@ while True:
  
 	distance_x =0
 	distance_y =0
+	
+	if len(contours)!=0:
  
- 
-	cv2.circle(prev, (320,240), 5, (0,255,0), -1)
-	for contors in contours:				
+		max_contour =contours[0]
+		max_contour_area =cv2.contourArea(max_contour)
+	
+		for contors in contours:				
+			if cv2.contourArea(contors) > max_contour_area:
+				max_contour = contors
+				max_contour_area = cv2.contourArea(max_contour)
+				
+	
+		cv2.circle(prev, (320,240), 5, (0,255,0), -1)
+		contors =  max_contour			
 		if cv2.contourArea(contors) > 300:
 			(x,y,w,h) = cv2.boundingRect(contors)
 			(x1,y1),rad = cv2.minEnclosingCircle(contors)
-   
+
 			x1 = int(x1)
 			y1 = int(y1)
 
@@ -56,16 +66,16 @@ while True:
 			distance_y = y1-240
 
 			if (int(np.sqrt((distance_x)**2 + (distance_y)**2)) > 100):
-				cv2.line(prev, (320,240), (x1, y1), (255,0,0), 4)
-				cv2.putText(prev, "{}".format(int(np.sqrt((distance_x)**2 + (distance_y)**2))), (100,100),cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 3)
-				cv2.rectangle(prev, (x,y), (x+w,y+h), (0,255,0), 2)
-				cv2.circle(prev, (x1,y1), 5, (0,0,255), -1)
+					cv2.line(prev, (320,240), (x1, y1), (255,0,0), 4)
+					cv2.putText(prev, "{}".format(int(np.sqrt((distance_x)**2 + (distance_y)**2))), (100,100),cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 3)
+					cv2.rectangle(prev, (x,y), (x+w,y+h), (0,255,0), 2)
+					cv2.circle(prev, (x1,y1), 5, (0,0,255), -1)
+			
+						
 		
-					
-	
 	cv2.imshow("orig", prev)
 	cv2.imshow("Mask", mask)
-	
+		
 	prev = new
 	_, new = cap.read()
 	new = cv2.flip(new, 1)

@@ -1,76 +1,73 @@
-import cv2
-import numpy as np 
+from dronekit import connect, VehicleMode ,Vehicle , LocationLocal , LocationGlobal, LocationGlobalRelative
+import time
+from pymavlink import mavutil
 
-cap = cv2.VideoCapture(0)
+vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
+def arm_and_takeoff(aTargetAltitude):
+    """
+    Arms vehicle and fly to aTargetAltitude.
+    """
 
-_, prev = cap.read()
-prev = cv2.flip(prev, 1)
-_, new = cap.read()
-new = cv2.flip(new, 1)
+    print ("Basic pre-arm checks")
+    # Don't try to arm until autopilot is ready
+    while not vehicle.is_armable:
+        print (" Waiting for vehicle to initialise...")
+        time.sleep(1)
 
-_, frame = cap.read()
-frame =cv2.flip(frame, 1)
-blurred_frame = cv2.GaussianBlur(frame, (45,45), 0)
+    print ("Arming motors")
+    # Copter should arm in GUIDED mode
+    vehicle.mode    = VehicleMode("GUIDED")
+    vehicle.armed   = True
 
-hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
-    
-lower_blue = np.array([38, 86, 0])
-upper_blue = np.array([121, 255, 255])
-mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    
-contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    
+    # Confirm vehicle armed before attempting to take off
+    while not vehicle.armed:
+        print (" Waiting for arming...")
+        time.sleep(1)
+
+    print ("Taking off!")
+    vehicle.simple_takeoff(aTargetAltitude) # Take off to target altitude
+
+    # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
+    #  after Vehicle.simple_takeoff will execute immediately).
+    while True:
+        print (" Altitude: ", vehicle.location.global_relative_frame.alt)
+        #Break and return from function just below target altitude.
+        if vehicle.location.global_relative_frame.alt>=aTargetAltitude*0.95:
+            print ("Reached target altitude")
+            break
+        time.sleep(1)
+
+arm_and_takeoff(20)
+
+sos_coordiantes = LocationGlobal(-34.364114, 149.166022, 30) # random shit as of now 
+vehicle.simple_goto(sos_coordiantes)
+
+
+object_location =LocationLocal(10, 20,10)
+vehicle.simple_goto(object_location)
 
 
 
+#  now the object is moving so we use give velocity in diff direction to chase him
 
-while True:
-	diff = cv2.absdiff(prev, new)
-	diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-	diff = cv2.blur(diff, (5,5))
- 
-	_,thresh = cv2.threshold(diff, 10, 255, cv2.THRESH_BINARY)
-	threh = cv2.dilate(thresh, None, 3)  # type: ignore
-	thresh = cv2.erode(thresh, np.ones((4,4)), 1)  # type: ignore
- 
-	contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	height, width = mask.shape[:2]
-	# cv2.circle(prev, (20,200), 5, (0,255,0), -1) 	height, width = img.shape[:2]
-	cv2.circle(prev, (300,200), 5, (0,255,0), -1)
-	for contors in contours:				
-		if cv2.contourArea(contors) > 300:
-			(x,y,w,h) = cv2.boundingRect(contors)
-			(x1,y1),rad = cv2.minEnclosingCircle(contors)
-			x1 = int(x1)
-			y1 = int(y1)
-			if (int(np.sqrt((x1 - 300)**2 + (y1 - 200)**2)) > 100):
-				cv2.line(prev, (300,200), (x1, y1), (255,0,0), 4)
-				cv2.putText(prev, "{}".format(int(np.sqrt((x1 - 20)**2 + (y1 - 200)**2))), (100,100),cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 3)
-				cv2.rectangle(prev, (x,y), (x+w,y+h), (0,255,0), 2)
-				cv2.circle(prev, (x1,y1), 5, (0,0,255), -1)
-		
-					
-	
-	cv2.imshow("orig", prev)
-	cv2.imshow("Mask", mask)
-	
-	prev = new
-	_, new = cap.read()
-	new = cv2.flip(new, 1)
-	blurred_frame=cv2.GaussianBlur(new, (45,45), 0)
-	hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
-	lower_blue = np.array([38, 86, 0])
-	upper_blue = np.array([121, 255, 255])
-	mask = cv2.inRange(hsv, lower_blue, upper_blue)
-	contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+def send_body_ned_velocity(velocity_x, velocity_y, velocity_z, duration=0):
+    msg = vehicle.message_factory.set_position_target_local_ned_encode(
+        0,       # time_boot_ms (not used)
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_FRAME_BODY_NED, # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+        0b0000111111000111, # type_mask
+        0, 0, 0, # x, y, z positions (not used)
+        velocity_x, velocity_y, velocity_z, # m/s
+        0, 0, 0, # x, y, z acceleration
+        0, 0)
+    for x in range(0,duration):
+        vehicle.send_mavlink(msg)
+        time.sleep(1)
+        
+velocity_x = 0
+velocity_y = 5
+velocity_z = 0
+duration = 10
 
-	for contour in contours:
-		if cv2.contourArea(contour) > 1 :
-			cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
+send_body_ned_velocity(velocity_x, velocity_y, velocity_z, duration)
 
-	
-	if cv2.waitKey(1) == 27:
-		break
-
-cap.release()
-cv2.destroyAllWindows()

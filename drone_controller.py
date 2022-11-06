@@ -3,7 +3,8 @@ import time
 
 vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=57600)
 
-def arm_and_takeoff(aTargetAltitude):
+try:
+    def arm_and_takeoff(aTargetAltitude):
     """
     Arms vehicle and fly to aTargetAltitude.
     """
@@ -37,9 +38,10 @@ def arm_and_takeoff(aTargetAltitude):
             break
         time.sleep(1)
 
-arm_and_takeoff(20)
-time.sleep(10)
-vehicle.armed = False
+    arm_and_takeoff(20)
+
+except KeyboardInterrupt:
+    vehicle.armed= False
 
 
 

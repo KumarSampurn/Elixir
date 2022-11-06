@@ -8,7 +8,7 @@ try:
         if(vehicle.battery < 9.9):
             print ("Battery Low. Landing")
             print ("Battery: %s" % vehicle.battery)
-            
+            vehicle.mode = VehicleMode("LAND")
         else:
             print ("Battery: %s" % vehicle.battery)
         
@@ -53,3 +53,8 @@ try:
 
 except KeyboardInterrupt:
     vehicle.armed= False
+    vehicle.mode = VehicleMode("LAND")
+    
+
+
+

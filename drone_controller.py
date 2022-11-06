@@ -4,6 +4,16 @@ import time
 vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=57600)
 
 try:
+    def battery_check():
+    if(vehicle.battery < 9.9):
+        print ("Battery Low. Landing")
+    print "Battery: %s" % vehicle.battery
+        land()
+    else:
+        print "Battery: %s" % vehicle.battery
+        
+    
+    
     def arm_and_takeoff(aTargetAltitude):
     """
     Arms vehicle and fly to aTargetAltitude.
@@ -32,13 +42,15 @@ try:
     #  after Vehicle.simple_takeoff will execute immediately).
     while True:
         print (" Altitude: ", vehicle.location.global_relative_frame.alt)
+        battery_check()
         #Break and return from function just below target altitude.
         if vehicle.location.global_relative_frame.alt>=aTargetAltitude*0.95:
             print ("Reached target altitude")
             break
         time.sleep(1)
 
-    arm_and_takeoff(20)
+    arm_and_takeoff(10)
+    vehicle.mode = VehicleMode("LAND")
 
 except KeyboardInterrupt:
     vehicle.armed= False

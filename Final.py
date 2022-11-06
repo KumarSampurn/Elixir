@@ -2,19 +2,30 @@ from dis import dis
 import cv2
 import numpy as np 
 from dronekit import connect, VehicleMode ,Vehicle , LocationLocal , LocationGlobal, LocationGlobalRelative
-
 import time
 from pymavlink import mavutil
 
-vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=57600)
-try:
-    def arm_and_takeoff(aTargetAltitude):
-        """
-        Arms vehicle and fly to aTargetAltitude.
-        """
+''' Algorithm 
+    Step 1 : Connecting the drone to Raspberri pi and Taking off to a specific altitude
+    Step 2 : Making the drone go to a specific Location where the SOS came from 
+    Step 3 : Hovering Over the location to get details of situation and taking actions accordingly
+    Step 4 : Hitting the person with the Paintball
+    Step 5 : Chasing the person with object tracking mapped to paintball colour'''
+    
 
+
+
+#Connecting the Raspberry Pi to Pixhawk
+vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=57600)
+
+
+try:
+    #Arms vehicle and fly to aTargetAltitude.
+    def arm_and_takeoff(aTargetAltitude):
+        
         print ("Basic pre-arm checks")
-        # Don't try to arm until autopilot is ready
+        
+        # Waiting for the Copter to get into Auto Pilot
         while not vehicle.is_armable:
             print (" Waiting for vehicle to initialise...")
             time.sleep(1)
@@ -32,8 +43,7 @@ try:
         print ("Taking off!")
         vehicle.simple_takeoff(aTargetAltitude) # Take off to target altitude
 
-        # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
-        #  after Vehicle.simple_takeoff will execute immediately).
+        # Wait until the vehicle reaches a safe height before processing the goto 
         while True:
             print (" Altitude: ", vehicle.location.global_relative_frame.alt)
             #Break and return from function just below target altitude.
@@ -49,10 +59,19 @@ except KeyboardInterrupt:
 
 arm_and_takeoff(1.5)
 
+# set the default travel speed
+vehicle.airspeed=3
 
-
+#The sos coordinates that the police control will recieve
+sos_coordiantes = LocationGlobal(35.361354, 149.165218, 20)
+vehicle.simple_goto(sos_coordiantes)
 
 #sleep to make sure to reach the right spot
+time.sleep(30)
+
+
+
+
 
 #defining a function to go move in NEP with given velocity
 
@@ -61,7 +80,7 @@ try:
         msg = vehicle.message_factory.set_position_target_local_ned_encode(
         0,       # time_boot_ms (not used)
         0, 0,    # target system, target component
-        mavutil.mavlink.MAV_FRAME_BODY_NED, # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+        mavutil.mavlink.MAV_FRAME_BODY_NED, # frame is MAV_FRAME_BODY_NED for forward/back left/right control.
         0b0000111111000111, # type_mask
         0, 0, 0, # x, y, z positions (not used)
         velocity_x, velocity_y, velocity_z, # m/s
@@ -88,14 +107,20 @@ new = cv2.flip(new, 1)
 
 _, frame = cap.read()
 frame =cv2.flip(frame, 1)
+
+#Using GaussianBlur to Remove Noise From Image
 blurred_frame = cv2.GaussianBlur(frame, (101,101), 0)
 
 hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
     
+# With Several Hit and Trail method we got the Lower Bound and Upper Bound of the RBG value
 lower_blue = np.array([38, 86, 0])
 upper_blue = np.array([121, 255, 255])
+
+#making a mask for Blue Colour
 mask = cv2.inRange(hsv, lower_blue, upper_blue)
     
+#Drawing Countours around object in Mask image
 contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
 
@@ -104,20 +129,23 @@ while True:
     diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
     diff = cv2.blur(diff, (5,5))
  
+    #Threshold value for the diffrence mapping
     _,thresh = cv2.threshold(diff, 10, 255, cv2.THRESH_BINARY)
+    
+    # Dilating and eroding the thresholded image
     threh = cv2.dilate(thresh, None, 3)  # type: ignore
     thresh = cv2.erode(thresh, np.ones((4,4)), 1)  # type: ignore
  
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    height, width = mask.shape[:2]
     
- 
- 
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # height, width = mask.shape[:2]
+    
     distance_x =0
     distance_y =0
     
     if len(contours)!=0:
  
+        #Finding the Max Contour
         max_contour =contours[0]
         max_contour_area =cv2.contourArea(max_contour)
     
@@ -129,6 +157,7 @@ while True:
     
         cv2.circle(prev, (320,240), 5, (0,255,0), -1)
         contors =  max_contour			
+        #Finding the center of the countour
         if cv2.contourArea(contors) > 300:
             (x,y,w,h) = cv2.boundingRect(contors)
             (x1,y1),rad = cv2.minEnclosingCircle(contors)
@@ -139,6 +168,7 @@ while True:
             distance_x = x1-320
             distance_y = y1-240
 
+            #Distance mapping and making the drone move if the object move outside the 100pixel unit radius 
             if (int(np.sqrt((distance_x)**2 + (distance_y)**2)) > 100):
        
                     cv2.line(prev, (320,240), (x1, y1), (255,0,0), 4)

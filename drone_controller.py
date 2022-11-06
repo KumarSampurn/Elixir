@@ -1,7 +1,7 @@
 from dronekit import connect, VehicleMode ,Vehicle , LocationLocal , LocationGlobal, LocationGlobalRelative
 import time
 
-vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
+vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=57600)
 
 def arm_and_takeoff(aTargetAltitude):
     """
@@ -38,6 +38,8 @@ def arm_and_takeoff(aTargetAltitude):
         time.sleep(1)
 
 arm_and_takeoff(20)
+time.sleep(10)
+vehicle.armed = False
 
 
 
